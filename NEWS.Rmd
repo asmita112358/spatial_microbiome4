@@ -1,0 +1,16 @@
+---
+title: "Changelog"
+author: "Asmita Roy"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Changelog
+All notable changes to this project will be documented in this file. Changes are categorized as Added, Changed, Deprecated, Removed, Fixed, and Security.
+
+## - 2026-04-02
+### Added
+- generate_data.R: Added a new function `generate_data()` to create synthetic datasets for testing purposes.
+- variance_correction_codes.R: Downloaded the variance correction code from internet and added it to the project for future use.
+- RK_torshift_bothsided.R: Imported the RK toroidal shift code that was used to generate results for presentation on April 2
+- read_ruoqian's_data: Imported from last version, reads the real data and plots it. 
