@@ -8,6 +8,18 @@ output: html_document
 # Changelog
 All notable changes to this project will be documented in this file. Changes are categorized as Added, Changed, Deprecated, Removed, Fixed, and Security.
 
+## -2026-04-03
+### Added
+-pval.R: Added extra code to compute all 9 stats using M3 - variance correction
+### Security
+- pval.R: Added redundancies so code doesn't fail when intersection window does not have any points of shift taxa or base.taxa.
+
+## - 2026-04-02
+### Added
+- compute_K.R: Added a new function `compute_K()` to compute various K statistics for spatial point patterns, including border isotropic and translation corrections.
+- pval.R: Added a function pval_assoc that computes p values for all 9 stats returned by compute K() using M1 and M2
+- sims.R: Added a new script `sims.R` to perform simulations for evaluating the performance of the K statistics under different scenarios. Calls generate_data.R, compute_K.R, and pval.R
+
 ## - 2026-04-02
 ### Added
 - generate_data.R: Added a new function `generate_data()` to create synthetic datasets for testing purposes.
