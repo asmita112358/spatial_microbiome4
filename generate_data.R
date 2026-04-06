@@ -73,10 +73,4 @@ multi_type_lcgp <- function(win, M, mu, var, scale, p.cells){
   X
   
 }
-data <- multi_type_lcgp(square(1), M = 3, mu = 10, var = 1, scale = 0.5, p.cells = c(0.5, 0.3, 0.2))
-data <- rcluster_marked_ppp(square(1), n_parent = 100, M = 4, p.cells = c(0.3, 0.4, 0.2, 0.1), mu_offspring = 50, offspring_dist = "poisson", sigma = 0.03)
-df <- data.frame(data)
-ggplot(df, aes(x = x, y = y, color = marks)) +
-  geom_point(size = 1) +
-  theme_minimal() +
-  labs(title = "Marked PP", color = "Cell Type")
+
