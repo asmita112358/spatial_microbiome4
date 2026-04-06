@@ -1,0 +1,446 @@
+---
+title: "Toroidal shift simulations for square window"
+author: "Asmita Roy"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r, include = FALSE}
+library(spatstat)
+library(ggplot2)
+library(psych)
+library(parallel)
+library(GET)
+library(dplyr)
+library(tidyr)
+library(knitr)
+library(kableExtra)
+source("~/Library/CloudStorage/OneDrive-JohnsHopkins/Spatial_microbiome4/spatial_microbiome4/generate_data.R")
+
+```
+
+## Data generation
+- 100 parent cluster points were generated uniformly over a square of length 1
+- M = 4 types were assigned to the parent clusters with probability = (0.3, 0.4, 0.2, 0.1)
+- number of offsprings per cluster was generated using negative binomial distribution with mean = 50 and r = 15.
+- offspring locations were jittered from parent locations using a bivariate normal distribution with mean = 0 and varying standard deviation (0.01, 0.03, 0.05)
+
+```{r, echo=FALSE}
+M = 4
+p.cells = c(0.3, 0.4, 0.2, 0.1)
+win = square(1)
+rmax = 0.3
+r = seq(0, rmax, length.out = 50)
+n.sim = 500
+n.perm = 199
+cluster_sigma = 0.01
+data <- rcluster_marked_ppp(win = win, n_parent = 100, M = M, p.cells = p.cells, mu_offspring = 50, offspring_dist = "nbinom", sigma = cluster_sigma)
+df <- data.frame(data)
+ggplot(df, aes(x = x, y = y, color = factor(marks))) + geom_point() + theme_minimal() + labs(color = "Cell Type") + ggtitle("Simulated Spatial Point Pattern with 4 Cell Types with sigma = 0.01")
+```
+```{r, echo = FALSE}
+cluster_sigma = 0.03
+data <- rcluster_marked_ppp(win = win, n_parent = 100, M = M, p.cells = p.cells, mu_offspring = 50, offspring_dist = "nbinom", sigma = cluster_sigma)
+df <- data.frame(data)
+ggplot(df, aes(x = x, y = y, color = factor(marks))) + geom_point() + theme_minimal() + labs(color = "Cell Type") + ggtitle("Simulated Spatial Point Pattern with 4 Cell Types with sigma = 0.03")
+```
+```{r, echo = FALSE}
+cluster_sigma = 0.05
+data <- rcluster_marked_ppp(win = win, n_parent = 100, M = M, p.cells = p.cells, mu_offspring = 50, offspring_dist = "nbinom", sigma = cluster_sigma)
+df <- data.frame(data)
+ggplot(df, aes(x = x, y = y, color = factor(marks))) + geom_point() + theme_minimal() + labs(color = "Cell Type") + ggtitle("Simulated Spatial Point Pattern with 4 Cell Types with sigma = 0.05")
+```
+
+## stats used 
+
+- $K_{ij}:= K(i,j)$ is the ordiary directional K function for the pair of types (i,j)
+- $K^*_{ij}:= \frac{\lambda_jK_{ij}+\lambda_iK_{ji}}{\lambda_i + \lambda_j}$ is the symmetrized K function for the pair of types (i,j)
+- $R_{ij}:= \frac{K^*_{ij}}{\sqrt{K_{ii}K_{jj}}}$ is the normalized K function for the pair of types (i,j)
+
+## edge corrections used
+
+- border: points that are less than $r$ distance from the border of the window are not considered in the computation of K function. This leads to increasing variance in the function as bigger values of $r$ are considered. This is also the default correction used in R for large (> 3000) point processes.
+
+- isotropic: the contribution of each pair of points is weighted by the proportion of the circumference of the circle with radius equal to the distance between the points that lies within the window. This correction is more accurate than border correction but can be computationally intensive for large datasets.
+
+- translation: the contribution of each pair of points is weighted by the proportion of the area of the intersection of the window with its translation by the vector connecting the two points. This correction is more accurate than border correction and is computationally efficient for large datasets. This is also the correction used in the code for the variance correction paper.
+
+## Methods for generating null
+
+- toroidal shift(M1): the locations of one type of points are shifted by a random vector and wrapped around the edges of the window. This method preserves the spatial structure of the point pattern while breaking any association between the two types.
+
+- minus correction(M2): The K function is compute for the intersection window of the original pp and the translated pp. 
+
+- variance correction(M3): The K functions computed using minus correction has larger variance compared to the original K. So a variance correction is employed for more accurate size.
+
+## Number of settings
+
+- 3 statistics X 3 edge corrections X 3 null generation methods = 27 settings.
+- Results on all 27 settings are reported for cluster sigma = 0.01, 0.03 and 0.05.
+- type 1 errors are based on  500 simulation runs with 199 permutations for each run.
+- r, the radius of Ripley's K is taken as a vector from 0 to 0.3, following general recommendation of taking r up to 1/4 or 1/5 of the length of the window.
+
+# sigma = 0.01
+```{r, echo = FALSE}
+obj <- readRDS("size1.rds")
+
+
+
+# Row K
+K_M1 <- obj$K1M1
+K_M2 <- obj$K1M2
+K_M3 <- obj$K1M3
+
+# Row K*
+Kstar_M1 <- obj$K2M1
+Kstar_M2 <- obj$K2M2
+Kstar_M3 <- obj$K2M3
+
+# Row R
+R_M1 <- obj$K3M1
+R_M2 <- obj$K3M2
+R_M3 <- obj$K3M3
+
+cat("edge correction = border\n")
+cat("============================\n")
+
+cat("Kcross function, toroidal shift\n")
+print(K_M1)
+
+cat("Kcross function, minus correction\n")
+print(K_M2)
+
+cat("Kcross function, variance correction\n")
+print(K_M3)
+
+
+cat("Kstar function, toroidal shift\n")
+print(Kstar_M1)
+
+cat("Kstar function, minus correction\n")
+print(Kstar_M2)
+
+cat("Kstar function, variance correction\n")
+print(Kstar_M3)
+
+cat("R function, toroidal shift\n")
+print(R_M1)
+
+cat("R function, minus correction\n")
+print(R_M2)
+cat("R function, variance correction\n")
+print(R_M3)
+
+
+```
+```{r, echo = FALSE}
+# Row K
+K_M1 <- obj$K4M1
+K_M2 <- obj$K4M2
+K_M3 <- obj$K4M3
+
+# Row K*
+Kstar_M1 <- obj$K5M1
+Kstar_M2 <- obj$K5M2
+Kstar_M3 <- obj$K5M3
+
+# Row R
+R_M1 <- obj$K6M1
+R_M2 <- obj$K6M2
+R_M3 <- obj$K6M3
+cat("edge correction = translate\n")
+cat("============================\n")
+
+cat("Kcross function, toroidal shift\n")
+print(K_M1)
+
+cat("Kcross function, minus correction\n")
+print(K_M2)
+
+cat("Kcross function, variance correction\n")
+print(K_M3)
+
+cat("Kstar function, toroidal shift\n")
+print(Kstar_M1)
+cat("Kstar function, minus correction\n")
+print(Kstar_M2)
+cat("Kstar function, variance correction\n")
+print(Kstar_M3)
+
+cat("R function, toroidal shift\n")
+print(R_M1)
+cat("R function, minus correction\n")
+print(R_M2)
+cat("R function, variance correction\n")
+print(R_M3)
+
+
+```
+
+```{r, echo = FALSE}
+# Row K
+K_M1 <- obj$K7M1
+K_M2 <- obj$K7M2
+K_M3 <- obj$K7M3
+
+# Row K*
+Kstar_M1 <- obj$K8M1
+Kstar_M2 <- obj$K8M2
+Kstar_M3 <- obj$K8M3
+
+# Row R
+R_M1 <- obj$K9M1
+R_M2 <- obj$K9M2
+R_M3 <- obj$K9M3
+
+cat("edge correction = isotropic\n")
+cat("============================\n")
+cat("Kcross function, toroidal shift\n")
+print(K_M1)
+cat("Kcross function, minus correction\n")
+print(K_M2)
+cat("Kcross function, variance correction\n")
+print(K_M3)
+cat("Kstar function, toroidal shift\n")
+print(Kstar_M1)
+cat("Kstar function, minus correction\n")
+print(Kstar_M2)
+cat("Kstar function, variance correction\n")
+print(Kstar_M3)
+cat("R function, toroidal shift\n")
+print(R_M1)
+cat("R function, minus correction\n")
+print(R_M2)
+cat("R function, variance correction\n")
+print(R_M3)
+
+```
+# sigma = 0.03
+
+```{r, echo = FALSE}
+obj <- readRDS("size3.rds")
+
+# Row K
+K_M1 <- obj$K1M1
+K_M2 <- obj$K1M2
+K_M3 <- obj$K1M3
+# Row K*
+Kstar_M1 <- obj$K2M1
+Kstar_M2 <- obj$K2M2
+Kstar_M3 <- obj$K2M3
+# Row R
+R_M1 <- obj$K3M1
+R_M2 <- obj$K3M2
+R_M3 <- obj$K3M3
+cat("edge correction = border\n")
+cat("============================\n")
+cat("Kcross function, toroidal shift\n")
+print(K_M1)
+cat("Kcross function, minus correction\n")
+print(K_M2)
+cat("Kcross function, variance correction\n")
+print(K_M3)
+cat("Kstar function, toroidal shift\n")
+print(Kstar_M1)
+cat("Kstar function, minus correction\n")
+print(Kstar_M2)
+cat("Kstar function, variance correction\n")
+print(Kstar_M3)
+cat("R function, toroidal shift\n")
+print(R_M1)
+cat("R function, minus correction\n")
+print(R_M2)
+cat("R function, variance correction\n")
+print(R_M3)
+
+```
+
+```{r, echo = FALSE}
+# Row K
+K_M1 <- obj$K4M1
+K_M2 <- obj$K4M2
+K_M3 <- obj$K4M3
+# Row K*
+Kstar_M1 <- obj$K5M1
+Kstar_M2 <- obj$K5M2
+Kstar_M3 <- obj$K5M3
+# Row R
+R_M1 <- obj$K6M1
+R_M2 <- obj$K6M2
+R_M3 <- obj$K6M3
+cat("edge correction = translate\n")
+cat("============================\n")
+cat("Kcross function, toroidal shift\n")
+print(K_M1)
+cat("Kcross function, minus correction\n")
+print(K_M2)
+cat("Kcross function, variance correction\n")
+print(K_M3)
+cat("Kstar function, toroidal shift\n")
+print(Kstar_M1)
+cat("Kstar function, minus correction\n")
+print(Kstar_M2)
+cat("Kstar function, variance correction\n")
+print(Kstar_M3)
+cat("R function, toroidal shift\n")
+print(R_M1)
+cat("R function, minus correction\n")
+print(R_M2)
+cat("R function, variance correction\n")
+print(R_M3)
+```
+```{r, echo = FALSE}
+# Row K
+K_M1 <- obj$K7M1
+K_M2 <- obj$K7M2
+K_M3 <- obj$K7M3
+# Row K*
+Kstar_M1 <- obj$K8M1
+Kstar_M2 <- obj$K8M2
+Kstar_M3 <- obj$K8M3
+# Row R
+R_M1 <- obj$K9M1
+R_M2 <- obj$K9M2
+R_M3 <- obj$K9M3
+cat("edge correction = isotropic\n")
+cat("============================\n")
+cat("Kcross function, toroidal shift\n")
+print(K_M1)
+cat("Kcross function, minus correction\n")
+print(K_M2)
+cat("Kcross function, variance correction\n")
+print(K_M3)
+cat("Kstar function, toroidal shift\n")
+print(Kstar_M1)
+cat("Kstar function, minus correction\n")
+print(Kstar_M2)
+cat("Kstar function, variance correction\n")
+print(Kstar_M3)
+cat("R function, toroidal shift\n")
+print(R_M1)
+cat("R function, minus correction\n")
+print(R_M2)
+cat("R function, variance correction\n")
+print(R_M3)
+```
+# sigma = 0.05
+```{r, echo = FALSE}
+obj <- readRDS("size5.rds")
+# Row K
+K_M1 <- obj$K1M1
+K_M2 <- obj$K1M2
+K_M3 <- obj$K1M3
+# Row K*
+Kstar_M1 <- obj$K2M1
+Kstar_M2 <- obj$K2M2
+Kstar_M3 <- obj$K2M3
+# Row R
+R_M1 <- obj$K3M1
+R_M2 <- obj$K3M2
+R_M3 <- obj$K3M3
+cat("edge correction = border\n")
+cat("============================\n")
+cat("Kcross function, toroidal shift\n")
+print(K_M1)
+cat("Kcross function, minus correction\n")
+print(K_M2)
+cat("Kcross function, variance correction\n")
+print(K_M3)
+cat("Kstar function, toroidal shift\n")
+print(Kstar_M1)
+cat("Kstar function, minus correction\n")
+print(Kstar_M2)
+cat("Kstar function, variance correction\n")
+print(Kstar_M3)
+cat("R function, toroidal shift\n")
+print(R_M1)
+cat("R function, minus correction\n")
+print(R_M2)
+cat("R function, variance correction\n")
+print(R_M3)
+```
+
+
+```{r, echo = FALSE}
+# Row K
+K_M1 <- obj$K4M1
+K_M2 <- obj$K4M2
+K_M3 <- obj$K4M3
+# Row K*
+Kstar_M1 <- obj$K5M1
+Kstar_M2 <- obj$K5M2
+Kstar_M3 <- obj$K5M3
+# Row R
+R_M1 <- obj$K6M1
+R_M2 <- obj$K6M2
+R_M3 <- obj$K6M3
+cat("edge correction = translate\n")
+cat("============================\n")
+cat("Kcross function, toroidal shift\n")
+print(K_M1)
+cat("Kcross function, minus correction\n")
+print(K_M2)
+cat("Kcross function, variance correction\n")
+print(K_M3)
+cat("Kstar function, toroidal shift\n")
+print(Kstar_M1)
+cat("Kstar function, minus correction\n")
+print(Kstar_M2)
+cat("Kstar function, variance correction\n")
+print(Kstar_M3)
+cat("R function, toroidal shift\n")
+print(R_M1)
+cat("R function, minus correction\n")
+print(R_M2)
+cat("R function, variance correction\n")
+print(R_M3)
+```
+
+```{r, echo = FALSE}
+# Row K
+K_M1 <- obj$K7M1
+K_M2 <- obj$K7M2
+K_M3 <- obj$K7M3
+# Row K*
+Kstar_M1 <- obj$K8M1
+Kstar_M2 <- obj$K8M2
+Kstar_M3 <- obj$K8M3
+# Row R
+R_M1 <- obj$K9M1
+R_M2 <- obj$K9M2
+R_M3 <- obj$K9M3
+cat("edge correction = isotropic\n")
+cat("============================\n")
+cat("Kcross function, toroidal shift\n")
+print(K_M1)
+cat("Kcross function, minus correction\n")
+print(K_M2)
+cat("Kcross function, variance correction\n")
+print(K_M3)
+cat("Kstar function, toroidal shift\n")
+print(Kstar_M1)
+cat("Kstar function, minus correction\n")
+print(Kstar_M2)
+cat("Kstar function, variance correction\n")
+print(Kstar_M3)
+cat("R function, toroidal shift\n")
+print(R_M1)
+cat("R function, minus correction\n")
+print(R_M2)
+cat("R function, variance correction\n")
+print(R_M3)
+
+```
+
+
+## Overall impression
+- Kcross and Kstar generally has infalted type 1 error in toroidal shift, especially at higher values of sigma
+- R function has better type 1 error control in toroidal shift, especially with isotropic and translation correction. However, it is still inflated at lower values of sigma.
+- Minus correction is conservative throughout
+- Variance correction has better type 1 error control than minus correction, but it is still conservative in many settings. It also has better type 1 error control than toroidal shift in many settings, especially at higher values of sigma.
