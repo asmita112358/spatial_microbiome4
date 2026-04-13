@@ -43,12 +43,20 @@ pval.assoc <- function(data, base.taxa = 1, shift.taxa = 2,r = r, n.perm = 199){
   K9M1.perm <- K9M2.perm <- K9M3.perm <- matrix(NA, nrow = n.perm, ncol = rlen)
   
   v_perm <- matrix(nrow = 2, ncol = n.perm)
-  perm <- 0  # Counter for valid permutations
+  perm <- 1  # Counter for valid permutations
   
-  while(perm < n.perm){
+  
+  data_tor <- data
+  ##check if window is rectangular
+  if(!is.rectangle(data$win)){
+    Window(data_tor) <- boundingbox(data$win)
+  }
+ 
+  
+  while(perm <= n.perm){
     
     #toroidal shift
-    data.shifted <- rshift(data, which = as.character(shift.taxa), edge = "torus")
+    data.shifted <- rshift(data_tor, which = as.character(shift.taxa), edge = "torus")
     data.shifted <- rshift(data.shifted, which = as.character(base.taxa), edge = "torus")
     freq_marks <- table(data.shifted$marks)
     lambda1 <- freq_marks[as.character(base.taxa)]
@@ -58,8 +66,7 @@ pval.assoc <- function(data, base.taxa = 1, shift.taxa = 2,r = r, n.perm = 199){
       next  # Skip this iteration, don't increment perm
     }
     
-    # Only increment counter if we pass the check
-    perm <- perm + 1
+   
     
     obj_K_shifted <- compute_K(data.shifted, base.taxa = base.taxa, shift.taxa = shift.taxa, 
                                lambda1 = lambda1, lambda2 = lambda2, r = r)
@@ -89,7 +96,6 @@ pval.assoc <- function(data, base.taxa = 1, shift.taxa = 2,r = r, n.perm = 199){
     lambda2_new <- freq_marks[as.character(shift.taxa)]
     
     if(lambda1_new == 0 || lambda2_new == 0){
-      perm <- perm - 1  # Decrement because this iteration failed
       next
     }
     
@@ -107,6 +113,8 @@ pval.assoc <- function(data, base.taxa = 1, shift.taxa = 2,r = r, n.perm = 199){
     
     #variance correction
     v_perm[, perm] <- c(random_x_shift, random_y_shift)
+    # Only increment counter if we pass all checks
+    perm <- perm + 1
   }
   ##Clean K1, M1 and run GET
   df <- data.frame(r = r, K1 = K1, t(K1M1.perm))
@@ -480,8 +488,115 @@ pval.assoc <- function(data, base.taxa = 1, shift.taxa = 2,r = r, n.perm = 199){
              pvalK9M1 =pvalK9M1,  pvalK9M2 =pvalK9M2 ,pvalK9M3=pvalK9M3))
 }
 
+##pval.assoc.M1 : p-value for toroidal shift, edge correction = border
 
+pval.assoc.M1 <- function(data, base.taxa = 1, shift.taxa = 2,r = r, n.perm = 199, correction = "border"){
 
-
-
+  rlen = length(r)
+  freq_marks <- table(data$marks)
+  original_window <- data$window
+  x_range <- diff(original_window$xrange)
+  y_range <- diff(original_window$yrange)
+  lambda1 <- freq_marks[as.character(base.taxa)]
+  lambda2 <- freq_marks[as.character(shift.taxa)]
+  obj_K <- compute_K_edge(data, base.taxa = base.taxa, shift.taxa = shift.taxa, lambda1 = lambda1, lambda2 = lambda2, r = r, correction = correction)
+  
+  #extract stats
+  K1 <- obj_K$K12
+  K2 <- obj_K$Kstar
+  K3 <- obj_K$Kcor
+  
+  # Permutation test using toroidal shift, minus correction and variance correction
+  K1M1.perm <-  matrix(NA, nrow = n.perm, ncol = rlen)
+  K2M1.perm <-  matrix(NA, nrow = n.perm, ncol = rlen)
+  K3M1.perm <-  matrix(NA, nrow = n.perm, ncol = rlen)
+  
+  
+  perm <- 0  # Counter for valid permutations
+  
+  ##check if window is rectangular
+  if(!is.rectangle(data$win)){
+    data_tor <- data
+    Window(data_tor) <- boundingbox(data$win)
+  }else{
+    data_tor <- data
+  }
+  
+  while(perm < n.perm){
+    
+    #toroidal shift
+    data.shifted <- rshift(data_tor, which = as.character(shift.taxa), edge = "torus")
+    data.shifted <- rshift(data.shifted, which = as.character(base.taxa), edge = "torus")
+    freq_marks <- table(data.shifted$marks)
+    lambda1 <- freq_marks[as.character(base.taxa)]
+    lambda2 <- freq_marks[as.character(shift.taxa)]
+    
+    if(lambda1 == 0 || lambda2 == 0){
+      next  # Skip this iteration, don't increment perm
+    }
+    
+    # Only increment counter if we pass the check
+    perm <- perm + 1
+    
+    #compute K1, K2, K3 for shifted data
+    obj_K_shifted <- compute_K_edge(data.shifted, base.taxa = base.taxa, shift.taxa = shift.taxa, 
+                               lambda1 = lambda1, lambda2 = lambda2, r = r, correction = correction)
+    
+    
+    K1M1.perm[perm, ] <- obj_K_shifted$K12
+    K2M1.perm[perm, ] <- obj_K_shifted$Kstar
+    K3M1.perm[perm, ] <- obj_K_shifted$Kcor
+  }
+  
+  #Clean K1, M1 and run GET
+  df <- data.frame(r = r, K1 = K1, t(K1M1.perm))
+  df <- df[apply(df, 1, function(x) all(is.finite(x))), ]
+  if(nrow(df) == 0){
+    pvalK1M1 <- NA
+    }else{
+      r1 <- df$r
+      K1M1 <- df$K1
+      sim_K1 <- as.matrix(df[,-c(1,2)])
+      cset <- curve_set(obs = K1M1, sim = sim_K1, r = r1)
+      plot(cset)
+      GET_erl <- global_envelope_test(cset, typeone = "fwer", type = "rank", alpha = 0.05, 
+                                      alternative = "greater")
+      pvalK1M1 <- attr(GET_erl, "p")
+    }
+  
+  #Clean K2, M1 and run GET
+  df <- data.frame(r = r, K2 = K2, t(K2M1.perm))
+  df <- df[apply(df, 1, function(x) all(is.finite(x))), ]
+  if(nrow(df) == 0){
+    pvalK2M1 <- NA
+  }else{
+    r1 <- df$r
+    K2M1 <- df$K2
+    sim_K2 <- as.matrix(df[,-c(1,2)])
+    cset <- curve_set(obs = K2M1, sim = sim_K2, r = r1)
+    plot(cset)
+    GET_erl <- global_envelope_test(cset, typeone = "fwer", type = "rank", alpha = 0.05, 
+                                    alternative = "greater")
+    pvalK2M1 <- attr(GET_erl, "p")
+  }
+  
+  #Clean K3, M1 and run GET
+  df <- data.frame(r = r, K3 = K3, t(K3M1.perm))
+  df <- df[apply(df, 1, function(x) all(is.finite(x))), ]
+  if(nrow(df) == 0){
+    pvalK3M1 <- NA
+  }else{
+    r1 <- df$r
+    K3M1 <- df$K3
+    sim_K3 <- as.matrix(df[,-c(1,2)])
+    cset <- curve_set(obs = K3M1, sim = sim_K3, r = r1)
+    plot(cset)
+    GET_erl <- global_envelope_test(cset, typeone = "fwer", type = "rank", alpha = 0.05, 
+                                    alternative = "greater")
+    pvalK3M1 <- attr(GET_erl, "p")
+  }
+  
+  return(list(pvalK1M1 = pvalK1M1, pvalK2M1 = pvalK2M1, pvalK3M1 = pvalK3M1))
+  
+}
 

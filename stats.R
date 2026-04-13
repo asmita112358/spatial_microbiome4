@@ -53,4 +53,44 @@ compute_K <- function(data, base.taxa, shift.taxa, lambda1, lambda2, r = NULL){
 
 ## After we get simulation results and decide on a statistic, will put in the function below that computes the shortlisted statistics
 
-
+compute_K_edge <- function(data, base.taxa, shift.taxa, lambda1, lambda2, r = NULL, correction = "border"){
+  
+  if(correction == "border"){
+    obj12 <- Kcross(data, i = as.character(base.taxa), j = as.character(shift.taxa),
+                    r =r, correction = "border")
+    obj21 <- Kcross(data, i = as.character(shift.taxa), j = as.character(base.taxa),
+                    r = r, correction = "border")
+    
+    obj11 <- Kest(data[data$marks == as.character(base.taxa)], r = r, correction = "border")
+    obj22 <- Kest(data[data$marks == as.character(shift.taxa)], r = r, correction = "border")
+    
+  } else if(correction == "translate"){
+    obj12 <- Kcross(data, i = as.character(base.taxa), j = as.character(shift.taxa),
+                    r =r, correction = "translate")
+    obj21 <- Kcross(data, i = as.character(shift.taxa), j = as.character(base.taxa),
+                    r = r, correction = "translate")
+    
+    obj11 <- Kest(data[data$marks == as.character(base.taxa)], r = r, correction = "translate")
+    obj22 <- Kest(data[data$marks == as.character(shift.taxa)], r = r, correction = "translate")
+    
+  } else if(correction == "isotropic"){
+    obj12 <- Kcross(data, i = as.character(base.taxa), j = as.character(shift.taxa),
+                    r =r, correction = "isotropic")
+    obj21 <- Kcross(data, i = as.character(shift.taxa), j = as.character(base.taxa),
+                    r = r, correction = "isotropic")
+    
+    obj11 <- Kest(data[data$marks == as.character(base.taxa)], r = r, correction = "isotropic")
+    obj22 <- Kest(data[data$marks == as.character(shift.taxa)], r = r, correction = "isotropic")
+  }
+  
+  
+  #Stat1: K12
+  stat1 <- obj12[[3]]
+  #Stat2: K_star
+  Kstar <- (lambda2*obj12[[3]] + lambda1*obj21[[3]])/(lambda1+lambda2)
+  #Stat3: Kcor
+  Kcor <- (Kstar)/(sqrt(obj11[[3]]*obj22[[3]]))
+  
+  return(list(K12 = stat1, Kstar = Kstar, Kcor = Kcor, r = obj12$r))
+  
+}
