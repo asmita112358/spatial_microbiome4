@@ -7,6 +7,18 @@ output: html_document
 
 # Changelog
 All notable changes to this project will be documented in this file. Changes are categorized as Added, Changed, Deprecated, Removed, Fixed, and Security.
+## -2026-04-15
+### Deprecated
+- var_corr.R: Deprecated the original variance correction code that was used for the presentation on April 2, as it did not perform well in terms of size. Will explore other methods for variance correction.
+
+## -2026-04-13
+### Added 
+- var_corr.R: tried some ways to improve size for variance correction
+
+## -2026-04-09
+### Added
+- sims.R: simulations for square window
+- sims_irregW.R: simulations for irregular window
 
 ## -2026-04-03
 ### Added

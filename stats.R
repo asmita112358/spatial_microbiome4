@@ -94,3 +94,11 @@ compute_K_edge <- function(data, base.taxa, shift.taxa, lambda1, lambda2, r = NU
   return(list(K12 = stat1, Kstar = Kstar, Kcor = Kcor, r = obj12$r))
   
 }
+
+##Kstat with border correction
+
+# Kcross <- function(data, base.taxa, shift.taxa, lambda1, lambda2 ,r){
+#   obj12 <- Kcross(data, i = as.character(base.taxa), j = as.character(shift.taxa),
+#                   r =r, correction = "border")
+#   return(obj12[[3]])
+# }
