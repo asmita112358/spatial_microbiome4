@@ -11,6 +11,11 @@ All notable changes to this project will be documented in this file. Changes are
 ### Deprecated
 - var_corr.R: Deprecated the original variance correction code that was used for the presentation on April 2, as it did not perform well in terms of size. Will explore other methods for variance correction.
 
+### Changed
+- stats.R: compute_K now has K, Kstar and Kcor only for border correction. 
+### Added
+- stats.R: an NN function is added.
+
 ## -2026-04-13
 ### Added 
 - var_corr.R: tried some ways to improve size for variance correction

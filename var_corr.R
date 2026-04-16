@@ -1,5 +1,5 @@
 ##principled code for variance correction, count correction and modified count correction
-
+##deprecated as of apr 15, 2026, as it did not perform well in terms of size. Will explore other methods for variance correction.
 library(spatstat)
 library(ggplot2)
 library(psych)
