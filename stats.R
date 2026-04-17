@@ -117,7 +117,7 @@ compute_K <- function(data, base.taxa, shift.taxa, lambda1, lambda2, r = NULL){
   obj22 <- Kest(data[data$marks == as.character(shift.taxa)], r = r, correction = "border")
   Kcor <- (Kstar )/(sqrt(obj11$border*obj22$border))
   
-  return(list(Kcross = Kcross_stat, Kstar = Kstar, Kcor = Kcor, r = obj12$r))
+  return(list(Kcross_stat = Kcross_stat, Kstar = Kstar, Kcor = Kcor, r = obj12$r))
 }
 
 ##NN function
@@ -128,10 +128,8 @@ compute_NN <- function(data,base.taxa, shift.taxa){
   base.taxa.coords <- cbind(base.taxa.points$x, base.taxa.points$y)
   nn <- get.knnx(all.coords, base.taxa.coords, k = 2, algorithm = "kd_tree")
   nn.types <- data$marks[nn$nn.index[,2]]
-  Nij <- sum(nn.types == as.character(shift.taxa))
+  Nij <- sum(nn.types == as.character(shift.taxa))/sum(data$marks == as.character(shift.taxa))
   
   return(Nij)
 }
 
-data <- rcluster_marked_ppp(win = win, n_parent = 100, M = M, p.cells = p.cells, mu_offspring = 50, offspring_dist = "nbinom", sigma = 0.05)
-compute_NN(data, base.taxa = 1, shift.taxa = 2)
