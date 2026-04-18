@@ -22,7 +22,7 @@ rmax = 0.15
 r = seq(0, rmax, length.out = 50)
 n.sim = 500
 n.perm = 199
-cluster_sigma = 0.05
+cluster_sigma = 0.07
 
 
 
@@ -55,7 +55,7 @@ for(base.taxa in 1:(M-1)){
   for(shift.taxa in (base.taxa+1):M){
     results <- mclapply(1:n.sim, function(i){
  
-      data <- rcluster_marked_ppp(win = win, n_parent = 100, M = M, p.cells = p.cells, mu_offspring = 50, offspring_dist = "nbinom", sigma = cluster_sigma)
+      data <- rcluster_marked_ppp_dependant(win = win, n_parent = 100, M = M, p.cells = p.cells, mu_offspring = 50, offspring_dist = "nbinom", sigma = cluster_sigma, pair_types = c(1,3), pair_distance = 0.05)
       pvals <- pval.assoc(data, base.taxa = base.taxa, shift.taxa = shift.taxa,r = r, n.perm = 199, bw = 0.15)
       return(pvals)
       
@@ -91,5 +91,5 @@ saveRDS(list(Kcross_torshift = Kcross_torshift, Kstar_torshift = Kstar_torshift,
          Kcross.vc.ep = Kcross.vc.ep, Kcross.vc.gauss = Kcross.vc.gauss, Kcross.vc.uniform = Kcross.vc.uniform,
          Kstar.vc.ep = Kstar.vc.ep, Kstar.vc.gauss = Kstar.vc.gauss, Kstar.vc.uniform = Kstar.vc.uniform,
          Kcor.vc.ep = Kcor.vc.ep, Kcor.vc.gauss = Kcor.vc.gauss, Kcor.vc.uniform = Kcor.vc.uniform,
-         NN.vc.ep = NN.vc.ep, NN.vc.gauss = NN.vc.gauss, NN.vc.uniform = NN.vc.uniform), file = "simulation_results_irregW_5.rds")
+         NN.vc.ep = NN.vc.ep, NN.vc.gauss = NN.vc.gauss, NN.vc.uniform = NN.vc.uniform), file = "simulation_results_irregW_7_power13.rds")
 beepr::beep(4)
