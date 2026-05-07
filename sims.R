@@ -17,12 +17,12 @@ W_new$yrange <- range(W_new$bdry[[1]]$y)
 
 M = 4
 p.cells = c(0.3, 0.4, 0.2, 0.1)
-win = W_new#square(1)
+win = square(1)
 rmax = 0.15
 r = seq(0, rmax, length.out = 50)
 n.sim = 500
 n.perm = 199
-cluster_sigma = 0.07
+cluster_sigma = 0.01
 
 
 
@@ -91,5 +91,5 @@ saveRDS(list(Kcross_torshift = Kcross_torshift, Kstar_torshift = Kstar_torshift,
          Kcross.vc.ep = Kcross.vc.ep, Kcross.vc.gauss = Kcross.vc.gauss, Kcross.vc.uniform = Kcross.vc.uniform,
          Kstar.vc.ep = Kstar.vc.ep, Kstar.vc.gauss = Kstar.vc.gauss, Kstar.vc.uniform = Kstar.vc.uniform,
          Kcor.vc.ep = Kcor.vc.ep, Kcor.vc.gauss = Kcor.vc.gauss, Kcor.vc.uniform = Kcor.vc.uniform,
-         NN.vc.ep = NN.vc.ep, NN.vc.gauss = NN.vc.gauss, NN.vc.uniform = NN.vc.uniform), file = "simulation_results_irregW_7_power13.rds")
+         NN.vc.ep = NN.vc.ep, NN.vc.gauss = NN.vc.gauss, NN.vc.uniform = NN.vc.uniform), file = "simulation_results_1_power13.rds")
 beepr::beep(4)

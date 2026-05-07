@@ -7,6 +7,13 @@ output: html_document
 
 # Changelog
 All notable changes to this project will be documented in this file. Changes are categorized as Added, Changed, Deprecated, Removed, Fixed, and Security.
+## -2026-04-28
+### Added
+- pval_v2.R: Added a new function pval.assoc that computes pval for Kcross, Kstar and NN for torshift, RS_ker for different kernels and different bandwidths. 
+- sims.R: Added code to run simulations for the new pval.assoc function.
+- Power_realdata.R: 10 percent of the points of a real slide is sampled, power is computed for all methods using pval.assoc function.
+- var_corr.R: Tried variance correction with the weights determined by sample sizes of the restricted window. Has no size inflation, possibly doing a tiny bit better than weights determined by the translation vector, but have not compared the two directly.
+
 ## -2026-04-15
 ### Deprecated
 - var_corr.R: Deprecated the original variance correction code that was used for the presentation on April 2, as it did not perform well in terms of size. Will explore other methods for variance correction.

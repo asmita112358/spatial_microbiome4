@@ -1,14 +1,15 @@
 ##Power, based on real data
 ##read a slide, calculate p values for 100 samples of a specific depth
+rm(list = ls())
 library(RColorBrewer)
 library(Polychrome)
 library(corrplot)
 library(ggcorrplot)
 library(gridGraphics)
-rm(list = ls())
+
 source("~/Library/CloudStorage/OneDrive-JohnsHopkins/Spatial_microbiome4/spatial_microbiome4/generate_data.R", echo = FALSE)
 source("~/Library/CloudStorage/OneDrive-JohnsHopkins/Spatial_microbiome4/spatial_microbiome4/pval_v2.R", echo = TRUE)
-
+setwd("~/Library/CloudStorage/OneDrive-JohnsHopkins/Spatial_microbiome3")
 process_df <- function(df, tile_num=NULL){
   if (is.null(tile_num)) tile <- df
   else
@@ -71,7 +72,10 @@ ppp_img=ppp(x=img.df$x, y=img.df$y, c(min(img.df$x), max(img.df$x)), c(min(img.d
 ppp_df <- data.frame(ppp_img)
 
 split_ppp <- split.ppp(ppp_img, f = marks(ppp_img))
-
+col_pallette <- kelly.colors(n = 18)
+col_pallette[1] <- "#e25"
+names(col_pallette) <- levels(ppp_df$marks)
+ggplot(ppp_df, aes(x = x, y = y, color = marks)) +geom_point(alpha = 3) +scale_color_manual(values = col_pallette) 
 
 
 
