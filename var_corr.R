@@ -143,7 +143,7 @@ var.corr.test <- function(data, base.taxa, shift.taxa, r = NULL, n.perm, max.att
   #plot(cset)
   #cset_star <- curve_set(obs = K0, sim = Kstar_perm, r = r)
   #plot(cset_star)
-  vsimu <- cbind(c(lambda1, lambda2), nstar_reduced)
+  vsimu <- cbind(nstar_reduced, c(lambda1, lambda2))
   aij <- pairdist.default(t(vsimu))
   if(bw == "silverman"){
     bw <- 1.06 * mean(apply(vsimu, 1, sd)) * nrow(vsimu)^(-1/5)
@@ -159,8 +159,8 @@ var.corr.test <- function(data, base.taxa, shift.taxa, r = NULL, n.perm, max.att
   S_gauss <- (si2_gauss)^(-0.5) * Si
   S_gauss[is.nan(S_gauss)] <- 0
   CS_gauss <- create_curve_set(list(r = r, obs = S_gauss[ , n.perm + 1], sim_m = S_gauss[ , 1:n.perm]))
-  pval_n <- attr(rank_envelope(CS_gauss, type = "erl"), "p")
-  
+  obj <- global_envelope_test(CS_gauss, typeone = "fwer", alternative = "greater", type = "erl")
+  pval_n <- attr(obj, "p")
   #wsimu <- c(area.owin(data$window), W.area.reduced)
   #aij <- pairdist.default(matrix(wsimu, ncol = 1))
   #bw <- 1.06 * sd(wsimu) * length(wsimu)^(-1/5)
@@ -190,3 +190,5 @@ for(base.taxa in 1:(M-1)){
     print(paste("Base taxa:", base.taxa, "Shift taxa:", shift.taxa, "type1 err: ", type1_error[base.taxa, shift.taxa]))
   }
 }
+
+

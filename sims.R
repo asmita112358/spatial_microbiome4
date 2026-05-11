@@ -22,7 +22,7 @@ rmax = 0.15
 r = seq(0, rmax, length.out = 50)
 n.sim = 500
 n.perm = 199
-cluster_sigma = 0.01
+cluster_sigma = 0.05
 
 
 

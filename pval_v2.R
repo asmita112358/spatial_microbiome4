@@ -168,7 +168,7 @@ pval.assoc <- function(data, base.taxa = 1, shift.taxa = 2, r = r, n.perm = 199,
   vsimu <- cbind(v_perm, c(0,0))
   aij <- pairdist.default(t(vsimu))
   if(bw == "silverman"){
-    bw <- 1.06 * min(apply(vsimu, 2, sd)) * nrow(vsimu)^(-1/5)
+    bw <- 1.06 * mean(apply(vsimu, 2, sd)) * nrow(vsimu)^(-1/5)
   }
   wts_epanechnikov <- wts.kernel(aij, bw = bw, type = "epanechnikov")
   wts_epanechnikov <- wts_epanechnikov/sum(wts_epanechnikov)
