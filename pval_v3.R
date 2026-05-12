@@ -229,7 +229,7 @@ pval.assoc <- function(data, base.taxa = 1, shift.taxa = 2, r = r, n.perm = 199,
   EKcross <- t(nw_predict(X = t(vsimu), Y = t(Kcross.simulated), X0 = t(vsimu), bw = bw))
   E2Kcross <- t(nw_predict(X = t(vsimu), Y = t(Kcross.simulated^2), X0 = t(vsimu), bw = bw))
   var_Kcross <- E2Kcross - EKcross^2
-  S_Kcross <- (Kcross.simulated - Kmean) / sqrt(var_Kcross)
+  S_Kcross <- (Kcross.simulated - EKcross) / sqrt(var_Kcross)
   S_Kcross[is.nan(S_Kcross)] <- 0
   CS <- create_curve_set(list(r = r, obs = S_Kcross[ , n.perm + 1], sim_m = S_Kcross[ , 1:n.perm]))
   pval.Kcross.evc <- attr(rank_envelope(CS, type = "erl"), "p")
@@ -237,7 +237,7 @@ pval.assoc <- function(data, base.taxa = 1, shift.taxa = 2, r = r, n.perm = 199,
   EKcross_n <- t(nw_predict(X = t(nsimu), Y = t(Kcross.simulated), X0 = t(nsimu), bw = bw_n))
   E2Kcross_n <- t(nw_predict(X = t(nsimu), Y = t(Kcross.simulated^2), X0 = t(nsimu), bw = bw_n))
   var_Kcross_n <- E2Kcross_n - EKcross_n^2
-  S_Kcross_n <- (Kcross.simulated - Kmean) / sqrt(var_Kcross_n)
+  S_Kcross_n <- (Kcross.simulated - EKcross_n) / sqrt(var_Kcross_n)
   S_Kcross_n[is.nan(S_Kcross_n)] <- 0
   CS_n <- create_curve_set(list(r = r, obs = S_Kcross_n[ , n.perm + 1], sim_m = S_Kcross_n[ , 1:n.perm]))
   pval.Kcross.evc.n <- attr(rank_envelope(CS_n, type = "erl"), "p")
