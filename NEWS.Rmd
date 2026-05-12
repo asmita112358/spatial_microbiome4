@@ -7,6 +7,10 @@ output: html_document
 
 # Changelog
 All notable changes to this project will be documented in this file. Changes are categorized as Added, Changed, Deprecated, Removed, Fixed, and Security.
+## -2026-06-01
+### Added
+-pval_v3.R: Trying a new type of null generation called EVC - expectation variance correction but that is doing poorly.
+
 ## -2026-05-07
 ### exploratory_sd.R: Added code to check the behavior of standard deviation versus sample sizes and shift vectors for the K statistics.
 

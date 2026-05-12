@@ -13,6 +13,30 @@ wts.kernel <- function(x, bw, type = "epanechnikov"){
   }
   return(wts)
 }
+nw_predict <- function(X, Y, X0 = X, bw) {
+  n <- nrow(X)
+  m <- nrow(X0)
+  p <- ncol(Y)     # 50
+  out <- matrix(0, nrow = m, ncol = p)
+  
+  # Gaussian kernel function (isotropic)
+  gaussian_kernel <- function(d2, bw) {
+    exp(-0.5 * d2 / (bw^2))
+  }
+  
+  for (j in seq_len(m)) {
+    # squared Euclidean distances from query point X0[j,] to all X
+    d2 <- rowSums((X - matrix(X0[j, ], nrow = n, ncol = ncol(X), byrow = TRUE))^2)
+    w <- gaussian_kernel(d2, bw)
+    sw <- sum(w)
+    if (sw > 0) {
+      out[j, ] <- crossprod(w, Y) / sw   # weighted average of the rows of Y
+    } else {
+      out[j, ] <- NA
+    }
+  }
+  out
+}
 
 #wts.kernel(x = c(-0.1, 0, 0.12), bw = 0.15, type = "epanechnikov")
 #epanechnikov(x = c(-0.1, 0, 0.12), bw = 0.15)
@@ -49,13 +73,14 @@ pval.assoc <- function(data, base.taxa = 1, shift.taxa = 2, r = r, n.perm = 199,
   
   Kcor.tor <- matrix(NA, nrow = n.perm, ncol = rlen-1)
   Kcor.vc <- matrix(NA, nrow = n.perm, ncol = rlen-1)
- 
+  
   
   Nij.tor <- c()
   Nij.vc <- c()
-
+  
   
   v_perm <- matrix(nrow = 2, ncol = n.perm)
+  nstar_reduced <- matrix(NA, nrow = 2, ncol = n.perm)
   perm <- 1
   
   data_tor <- data
@@ -111,6 +136,8 @@ pval.assoc <- function(data, base.taxa = 1, shift.taxa = 2, r = r, n.perm = 199,
     Kcor.vc[perm, ] <- obj_K_minus$Kcor[-1]
     Nij.vc[perm] <- compute_NN(pp_shifted_reduced, base.taxa, shift.taxa)
     v_perm[,perm] <- c(shift_x, shift_y)
+    pp_prob <- table(pp_shifted_reduced$marks)
+    nstar_reduced[,perm] <- c(pp_prob[base.taxa] , pp_prob[shift.taxa])
     # Only increment counter if we pass all checks
     perm <- perm + 1
   }
@@ -166,112 +193,60 @@ pval.assoc <- function(data, base.taxa = 1, shift.taxa = 2, r = r, n.perm = 199,
   
   ##variance correction. weights from three different kernels.
   vsimu <- cbind(v_perm, c(0,0))
+  nsimu <- cbind(nstar_reduced, c(lambda1, lambda2))
   aij <- pairdist.default(t(vsimu))
+  nij <- pairdist.default(t(nsimu))
   if(bw == "silverman"){
     bw <- 1.06 * mean(apply(vsimu, 1, sd)) * nrow(vsimu)^(-1/5)
+    bw_n <- 1.06 * mean(apply(nsimu, 1, sd)) * nrow(nsimu)^(-1/5)
   }
-  wts_epanechnikov <- wts.kernel(aij, bw = bw, type = "epanechnikov")
-  wts_epanechnikov <- wts_epanechnikov/sum(wts_epanechnikov)
-  wts_gaussian <- wts.kernel(aij, bw = bw, type = "gaussian")
-  wts_gaussian <- wts_gaussian/sum(wts_gaussian)
-  wts_uniform <- wts.kernel(aij, bw = bw, type = "uniform")
-  wts_uniform <- wts_uniform/sum(wts_uniform)
+  #wts_epanechnikov <- wts.kernel(aij, bw = bw, type = "epanechnikov")
+  #wts_epanechnikov <- wts_epanechnikov/sum(wts_epanechnikov)
+  #wts_gaussian <- wts.kernel(aij, bw = bw, type = "gaussian")
+  #wts_gaussian <- wts_gaussian/sum(wts_gaussian)
+  #wts_uniform <- wts.kernel(aij, bw = bw, type = "uniform")
+  #wts_uniform <- wts_uniform/sum(wts_uniform)
   
   ##Kcross, Kstar, Kcor and NN in combination with the different kernels
   
-  #Kcross
+  #Kcross - vc, evc and minus
   Kcross.simulated <- cbind(t(Kcross_stat.vc), Kcross_stat)
   Kmean <- apply(Kcross.simulated, 1, mean)
   Si <- sweep(Kcross.simulated, 1, Kmean, "-")
-  si2_ep <- (Si^2)%*% wts_epanechnikov
-  si2_gauss <- (Si^2)%*% wts_gaussian
-  si2_uniform <- (Si^2)%*% wts_uniform
-  
-  S_ep <- (si2_ep)^(-0.5) * Si
-  S_ep[is.nan(S_ep)] <- 0
-  CS <- create_curve_set(list(r = r, obs = S_ep[ , n.perm + 1], sim_m = S_ep[ , 1:n.perm]))
-  pval.Kcross.vc.ep <- attr(rank_envelope(CS, type = "erl"), "p")
-  
+  si2_gauss <- t(nw_predict(X = t(vsimu), Y = t(Si^2), X0 = t(vsimu), bw = bw))
   S_gauss <- (si2_gauss)^(-0.5) * Si
   S_gauss[is.nan(S_gauss)] <- 0
   CS_gauss <- create_curve_set(list(r = r, obs = S_gauss[ , n.perm + 1], sim_m = S_gauss[ , 1:n.perm]))
   pval.Kcross.vc.gauss <- attr(rank_envelope(CS_gauss, type = "erl"), "p")
   
-  S_uniform <- (si2_uniform)^(-0.5) * Si
-  S_uniform[is.nan(S_uniform)] <- 0
-  CS_uniform <- create_curve_set(list(r = r, obs = S_uniform[ , n.perm + 1], sim_m = S_uniform[ , 1:n.perm]))
-  pval.Kcross.vc.uniform <- attr(rank_envelope(CS_uniform, type = "erl"), "p")
+  si2_n <- t(nw_predict(X = t(nsimu), Y = t(Si^2), X0 = t(nsimu), bw = bw_n))
+  S_n <- (si2_n)^(-0.5) * Si
+  S_n[is.nan(S_n)] <- 0
+  CS_n <- create_curve_set(list(r = r, obs = S_n[ , n.perm + 1], sim_m = S_n[ , 1:n.perm]))
+  pval.Kcross.vc.n <- attr(rank_envelope(CS_n, type = "erl"), "p")
   
-  #Kstar
-  Kstar.simulated <- cbind(t(Kstar.vc), Kstar)
-  Kstar.mean <- apply(Kstar.simulated, 1, mean)
-  Si_star <- sweep(Kstar.simulated, 1, Kstar.mean, "-")
-  si2_star_ep <- (Si_star^2)%*% wts_epanechnikov
-  si2_star_gauss <- (Si_star^2)%*% wts_gaussian
-  si2_star_uniform <- (Si_star^2)%*% wts_uniform
+ 
+  EKcross <- t(nw_predict(X = t(vsimu), Y = t(Kcross.simulated), X0 = t(vsimu), bw = bw))
+  E2Kcross <- t(nw_predict(X = t(vsimu), Y = t(Kcross.simulated^2), X0 = t(vsimu), bw = bw))
+  var_Kcross <- E2Kcross - EKcross^2
+  S_Kcross <- (Kcross.simulated - Kmean) / sqrt(var_Kcross)
+  S_Kcross[is.nan(S_Kcross)] <- 0
+  CS <- create_curve_set(list(r = r, obs = S_Kcross[ , n.perm + 1], sim_m = S_Kcross[ , 1:n.perm]))
+  pval.Kcross.evc <- attr(rank_envelope(CS, type = "erl"), "p")
   
-  S_star_ep <- (si2_star_ep)^(-0.5) * Si_star
-  S_star_ep[is.nan(S_star_ep)] <- 0
-  CS_star_ep <- create_curve_set(list(r = r, obs = S_star_ep[ , n.perm + 1], sim_m = S_star_ep[ , 1:n.perm]))
-  pval.Kstar.vc.ep <- attr(rank_envelope(CS_star_ep, type = "erl"), "p")
+  EKcross_n <- t(nw_predict(X = t(nsimu), Y = t(Kcross.simulated), X0 = t(nsimu), bw = bw_n))
+  E2Kcross_n <- t(nw_predict(X = t(nsimu), Y = t(Kcross.simulated^2), X0 = t(nsimu), bw = bw_n))
+  var_Kcross_n <- E2Kcross_n - EKcross_n^2
+  S_Kcross_n <- (Kcross.simulated - Kmean) / sqrt(var_Kcross_n)
+  S_Kcross_n[is.nan(S_Kcross_n)] <- 0
+  CS_n <- create_curve_set(list(r = r, obs = S_Kcross_n[ , n.perm + 1], sim_m = S_Kcross_n[ , 1:n.perm]))
+  pval.Kcross.evc.n <- attr(rank_envelope(CS_n, type = "erl"), "p")
   
-  S_star_gauss <- (si2_star_gauss)^(-0.5) * Si_star
-  S_star_gauss[is.nan(S_star_gauss)] <- 0
-  CS_star_gauss <- create_curve_set(list(r = r, obs = S_star_gauss[ , n.perm + 1], sim_m = S_star_gauss[ , 1:n.perm]))
-  pval.Kstar.vc.gauss <- attr(rank_envelope(CS_star_gauss, type = "erl"), "p")
-  
-  S_star_uniform <- (si2_star_uniform)^(-0.5) * Si_star
-  S_star_uniform[is.nan(S_star_uniform)] <- 0
-  CS_star_uniform <- create_curve_set(list(r = r, obs = S_star_uniform[ , n.perm + 1], sim_m = S_star_uniform[ , 1:n.perm]))
-  pval.Kstar.vc.uniform <- attr(rank_envelope(CS_star_uniform, type = "erl"), "p")
-  
-  #Kcor
-  Kcor.simulated <- cbind(t(Kcor.vc), Kcor)
-  Kcor.mean <- apply(Kcor.simulated, 1, mean)
-  Si_cor <- sweep(Kcor.simulated, 1, Kcor.mean, "-")
-  si2_cor_ep <- (Si_cor^2)%*% wts_epanechnikov
-  si2_cor_gauss <- (Si_cor^2)%*% wts_gaussian
-  si2_cor_uniform <- (Si_cor^2)%*% wts_uniform
-  
-  S_cor_ep <- (si2_cor_ep)^(-0.5) * Si_cor
-  S_cor_ep[is.nan(S_cor_ep)] <- 0
-  CS_cor_ep <- create_curve_set(list(r = rcor, obs = S_cor_ep[ , n.perm + 1], sim_m = S_cor_ep[ , 1:n.perm]))
-  pval.Kcor.vc.ep <- attr(rank_envelope(CS_cor_ep, type = "erl"), "p")
-  
-  S_cor_gauss <- (si2_cor_gauss)^(-0.5) * Si_cor
-  S_cor_gauss[is.nan(S_cor_gauss)] <- 0
-  CS_cor_gauss <- create_curve_set(list(r = rcor, obs = S_cor_gauss[ , n.perm + 1], sim_m = S_cor_gauss[ , 1:n.perm]))
-  pval.Kcor.vc.gauss <- attr(rank_envelope(CS_cor_gauss, type = "erl"), "p")
-  
-  S_cor_uniform <- (si2_cor_uniform)^(-0.5) * Si_cor
-  S_cor_uniform[is.nan(S_cor_uniform)] <- 0
-  CS_cor_uniform <- create_curve_set(list(r = rcor, obs = S_cor_uniform[ , n.perm + 1], sim_m = S_cor_uniform[ , 1:n.perm]))
-  pval.Kcor.vc.uniform <- attr(rank_envelope(CS_cor_uniform, type = "erl"), "p")
-  
-  #NN
-  Nij.simulated <- c(Nij.vc, Nij)
-  Nij.mean <- mean(Nij.simulated)
-  Si_NN <- Nij.simulated - Nij.mean
-  
-  si2_NN_ep <- sum(Si_NN^2 * wts_epanechnikov)  
-  si2_NN_gauss <- sum(Si_NN^2 * wts_gaussian)
-  si2_NN_uniform <- sum(Si_NN^2 * wts_uniform)
-  
-  S_NN_ep <- (si2_NN_ep)^(-0.5) * Si_NN
-  S_NN_ep[is.nan(S_NN_ep)] <- 0
-  pval.NN.vc.ep <- (1 + sum(S_NN_ep[1:n.perm] >= S_NN_ep[n.perm + 1]))/(1 + n.perm)
-
-  S_NN_gauss <- (si2_NN_gauss)^(-0.5) * Si_NN
-  S_NN_gauss[is.nan(S_NN_gauss)] <- 0
-  pval.NN.vc.gauss <- (1 + sum(S_NN_gauss[1:n.perm] >= S_NN_gauss[n.perm + 1]))/(1 + n.perm)
-  
-  S_NN_uniform <- (si2_NN_uniform)^(-0.5) * Si_NN
-  S_NN_uniform[is.nan(S_NN_uniform)] <- 0
-  pval.NN.vc.uniform <- (1 + sum(S_NN_uniform[1:n.perm] >= S_NN_uniform[n.perm + 1]))/(1 + n.perm)
+  CS_minus <- create_curve_set(list(r = r, obs = Kcross.simulated[,n.perm+1], sim_m = Kcross.simulated[ , 1:n.perm]))
+  pval.Kcross.minus <- attr(rank_envelope(CS_minus, type = "erl"), "p")
   
   return(list(pval_Kcross = pval_Kcross, pval_Kstar = pval_Kstar, pval_Kcor = pval_Kcor, pval_NN = pval_NN,
-              pval.Kcross.vc.ep = pval.Kcross.vc.ep, pval.Kcross.vc.gauss = pval.Kcross.vc.gauss, pval.Kcross.vc.uniform = pval.Kcross.vc.uniform,
-              pval.Kstar.vc.ep = pval.Kstar.vc.ep, pval.Kstar.vc.gauss = pval.Kstar.vc.gauss, pval.Kstar.vc.uniform = pval.Kstar.vc.uniform,
-              pval.Kcor.vc.ep = pval.Kcor.vc.ep, pval.Kcor.vc.gauss = pval.Kcor.vc.gauss, pval.Kcor.vc.uniform = pval.Kcor.vc.uniform,
-              pval.NN.vc.ep = pval.NN.vc.ep, pval.NN.vc.gauss = pval.NN.vc.gauss, pval.NN.vc.uniform = pval.NN.vc.uniform))
-}
+             pval.Kcross.vc.gauss = pval.Kcross.vc.gauss, pval.Kcross.evc = pval.Kcross.evc, 
+             pval.Kcross.vc.n = pval.Kcross.vc.n, pval.Kcross.evc.n = pval.Kcross.evc.n,
+             pval.Kcross.minus = pval.Kcross.minus))
+  }

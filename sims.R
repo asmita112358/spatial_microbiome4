@@ -43,45 +43,32 @@ Kstar.vc.ep <- matrix(NA, nrow = M, ncol = M)
 Kstar.vc.gauss <- matrix(NA, nrow = M, ncol = M)
 Kstar.vc.uniform <- matrix(NA, nrow = M, ncol = M)
 
-Kcor.vc.ep <- matrix(NA, nrow = M, ncol = M)
-Kcor.vc.gauss <- matrix(NA, nrow = M, ncol = M)
-Kcor.vc.uniform <- matrix(NA, nrow = M, ncol = M)
-
-NN.vc.ep <- matrix(NA, nrow = M, ncol = M)
-NN.vc.gauss <- matrix(NA, nrow = M, ncol = M)
-NN.vc.uniform <- matrix(NA, nrow = M, ncol = M)
+Kcross.evc <- matrix(NA, nrow = M, ncol = M)
+Kcross.minus <- matrix(NA, nrow = M, ncol = M)
+Kcross.vc.n <- matrix(NA, nrow = M, ncol = M)
+Kcross.evc.n <- matrix(NA, nrow = M, ncol = M)
 
 for(base.taxa in 1:(M-1)){
   for(shift.taxa in (base.taxa+1):M){
     results <- mclapply(1:n.sim, function(i){
  
-      data <- rcluster_marked_ppp_dependant(win = win, n_parent = 100, M = M, p.cells = p.cells, mu_offspring = 50, offspring_dist = "nbinom", sigma = cluster_sigma, pair_types = c(1,3), pair_distance = 0.05)
-      pvals <- pval.assoc(data, base.taxa = base.taxa, shift.taxa = shift.taxa,r = r, n.perm = 199, bw = 0.15)
+      data <- rcluster_marked_ppp_dependant(win = win, n_parent = 100, M = M, p.cells = p.cells, mu_offspring = 50, offspring_dist = "nbinom", sigma = cluster_sigma, pair_types = c(1,3), pair_distance = 0.1)
+      pvals <- pval.assoc(data, base.taxa = base.taxa, shift.taxa = shift.taxa,r = r, n.perm = 999, bw = "silverman")
       return(pvals)
       
     }, mc.cores = detectCores() - 1)
     # Process results and fill matrices
     results <- Filter(Negate(is.null), results)
+    results <- results[!sapply(results, is.character)]
     Kcross_torshift[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval_Kcross <= 0.05))
     Kstar_torshift[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval_Kstar <= 0.05))
     Kcor_torshift[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval_Kcor <= 0.05))
-    NN_torshift[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval_NN <= 0.05))
-    
-    Kcross.vc.ep[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.Kcross.vc.ep <= 0.05))
+       
     Kcross.vc.gauss[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.Kcross.vc.gauss <= 0.05))
-    Kcross.vc.uniform[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.Kcross.vc.uniform <= 0.05))
-    
-    Kstar.vc.ep[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.Kstar.vc.ep <= 0.05))
-    Kstar.vc.gauss[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.Kstar.vc.gauss <= 0.05))
-    Kstar.vc.uniform[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.Kstar.vc.uniform <= 0.05))
-    
-    Kcor.vc.ep[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.Kcor.vc.ep <= 0.05))
-    Kcor.vc.gauss[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.Kcor.vc.gauss <= 0.05))
-    Kcor.vc.uniform[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.Kcor.vc.uniform <= 0.05))
-    
-    NN.vc.ep[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.NN.vc.ep <= 0.05))
-    NN.vc.gauss[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.NN.vc.gauss <= 0.05))
-    NN.vc.uniform[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.NN.vc.uniform <= 0.05))
+    Kcross.vc.n[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.Kcross.vc.n <= 0.05))
+    Kcross.evc[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.Kcross.evc <= 0.05))
+    Kcross.evc.n[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.Kcross.evc.n <= 0.05))
+    Kcross.minus[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.Kcross.minus <= 0.05))
     
     print(Kstar_torshift[base.taxa, shift.taxa])
     print(sprintf("Completed base taxa %d and shift taxa %d", base.taxa, shift.taxa))
