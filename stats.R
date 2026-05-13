@@ -133,3 +133,11 @@ compute_NN <- function(data,base.taxa, shift.taxa){
   return(Nij)
 }
 
+##AUC under K
+compute_AUC <- function(K_stat, r){
+  # Assuming K_stat is a vector of K values corresponding to the r values
+  # We will compute the AUC using the trapezoidal rule
+  auc <- trapz(r, K_stat)
+  return(auc)
+}
+
