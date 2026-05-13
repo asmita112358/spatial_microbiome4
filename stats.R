@@ -8,6 +8,7 @@ library(dplyr)
 library(tidyr)
 library(RANN)
 library(FNN)
+library(pracma)
 ##Compute statistics
 
 # compute_K <- function(data, base.taxa, shift.taxa, lambda1, lambda2, r = NULL){
