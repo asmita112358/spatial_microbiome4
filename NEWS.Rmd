@@ -7,6 +7,13 @@ output: html_document
 
 # Changelog
 All notable changes to this project will be documented in this file. Changes are categorized as Added, Changed, Deprecated, Removed, Fixed, and Security.
+## -2026-06-13
+### Changed
+-stats.R: Added a function that calculates area under curve for Kcross.
+-pval_v3.R: Added code to compute pvalue for auc as well as median r value Kcross. Null generation has been done by toroidal shift, minus correction, variance correction
+### Fixed
+-pval_v3.R: Bug - lambda was named the same for original data as well as for null data, leading to incorrect p values. This has been fixed by renaming the lambda1 and lambda2 for original data to n1 and n2.
+
 ## -2026-06-01
 ### Added
 -pval_v3.R: Trying a new type of null generation called EVC - expectation variance correction but that is doing poorly.
