@@ -57,7 +57,7 @@ for(base.taxa in 1:(M-1)){
     results <- mclapply(1:n.sim, function(i){
  
       data <- rcluster_marked_ppp_dependant(win = win, n_parent = 100, M = M, p.cells = p.cells, mu_offspring = 50, offspring_dist = "nbinom", sigma = cluster_sigma, pair_types = c(1,3), pair_distance = 0.1)
-      pvals <- pval.assoc(data, base.taxa = base.taxa, shift.taxa = shift.taxa,r = r, n.perm = 999, bw = "silverman")
+      pvals <- pval.assoc(data, base.taxa = base.taxa, shift.taxa = shift.taxa,r = r, n.perm = 199, bw = "silverman")
       return(pvals)
       
     }, mc.cores = detectCores() - 1)
@@ -82,11 +82,11 @@ for(base.taxa in 1:(M-1)){
      median.vc[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.medr.vc <= 0.05))
      median.minus[base.taxa, shift.taxa] <- mean(sapply(results, function(x) x$pval.medr.minus <= 0.05))
     
-    print(median.vc[base.taxa, shift.taxa])
+    print(Kcor_torshift[base.taxa, shift.taxa])
     print(sprintf("Completed base taxa %d and shift taxa %d", base.taxa, shift.taxa))
   }
 }
-saveRDS(list(Kcross_torshift = Kcross_torshift, Kstar_torshift = Kstar_torshift, Kcor_torshift = Kcor_torshift,
-             Kcross.vc.gauss = Kcross.vc.gauss, Kcross.vc.n = Kcross.vc.n, Kcross.evc = Kcross.evc, Kcross.evc.n = Kcross.evc.n, Kcross.minus = Kcross.minus,
-             auc.torshift = auc.torshift, median.torshift = median.torshift, auc.vc = auc.vc, median.vc = median.vc), file = "sim_5.rds")
-beepr::beep(4)
+saveRDS(list(Kcross.torshift = Kcross_torshift,Kcross.vc = Kcross.vc.gauss, Kcross.minus = Kcross.minus,
+             Kstar.torshift = Kstar_torshift, Kcor.torshift = Kcor_torshift, 
+            auc.torshift = auc.torshift, auc.vc = auc.vc, auc.minus = auc.minus, 
+            median.torshift = median.torshift, median.vc = median.vc, median.minus = median.minus), file = "simu5.rds")
