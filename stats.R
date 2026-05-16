@@ -11,92 +11,6 @@ library(FNN)
 library(pracma)
 ##Compute statistics
 
-# compute_K <- function(data, base.taxa, shift.taxa, lambda1, lambda2, r = NULL){
-#   obj12_b <- Kcross(data, i = as.character(base.taxa), j = as.character(shift.taxa),
-#                  r =r, correction = "border")
-#   obj21_b <- Kcross(data, i = as.character(shift.taxa), j = as.character(base.taxa),
-#                  r = r, correction = "border")
-#   obj12_t <- Kcross(data, i = as.character(base.taxa), j = as.character(shift.taxa), r = r, correction = "translate")
-#   obj21_t <- Kcross(data, i = as.character(shift.taxa), j = as.character(base.taxa), r = r, correction = "translate")
-#   
-#   obj12_i <- Kcross(data, i = as.character(base.taxa), j = as.character(shift.taxa), r = r, correction = "isotropic")
-#   obj21_i <- Kcross(data, i = as.character(shift.taxa), j = as.character(base.taxa), r = r, correction = "isotropic")
-#   
-#   obj11_b <- Kest(data[data$marks == as.character(base.taxa)], r = r, correction = "border")
-#   obj22_b <- Kest(data[data$marks == as.character(shift.taxa)], r = r, correction = "border")
-#   
-#   obj11_t <- Kest(data[data$marks == as.character(base.taxa)], r = r, correction = "translate")
-#   obj22_t <- Kest(data[data$marks == as.character(shift.taxa)], r = r, correction = "translate")
-#   
-#   obj11_i <- Kest(data[data$marks == as.character(base.taxa)], r = r, correction = "isotropic")
-#   obj22_i <- Kest(data[data$marks == as.character(shift.taxa)], r = r, correction = "isotropic")
-#   
-#   
-#   #Stat1: K12
-#   stat1_border <- obj12_b$border
-#   stat1_translate <- obj12_t$trans
-#   stat1_isotropic <- obj12_i$iso
-#   
-#   #Stat2: K_star
-#   Kstar_b <- (lambda2*obj12_b$border + lambda1*obj21_b$border)/(lambda1+lambda2)
-#   Kstar_t <- (lambda2*obj12_t$trans + lambda1*obj21_t$trans)/(lambda1 + lambda2)
-#   Kstar_i <- (lambda2*obj12_i$iso + lambda1*obj21_i$iso)/(lambda1 + lambda2)
-#   
-#   #Stat3: Kcor
-#   Kcor_b <- (Kstar_b )/(sqrt(obj11_b$border*obj22_b$border))
-#   Kcor_t <- (Kstar_t )/(sqrt(obj11_t$trans*obj22_t$trans))
-#   Kcor_i <- (Kstar_i )/(sqrt(obj11_i$iso*obj22_i$iso))
-#   
-#   return(list(K1 = stat1_border, K2 = Kstar_b, K3 = Kcor_b,
-#               K4 = stat1_translate, K5 = Kstar_t, K6 = Kcor_t,
-#               K7 = stat1_isotropic, K8 = Kstar_i, K9 = Kcor_i, r = obj12_b$r))
-#   
-#   
-# }
-
-## After we get simulation results and decide on a statistic, will put in the function below that computes the shortlisted statistics
-
-# compute_K_edge <- function(data, base.taxa, shift.taxa, lambda1, lambda2, r = NULL, correction = "border"){
-#   
-#   if(correction == "border"){
-#     obj12 <- Kcross(data, i = as.character(base.taxa), j = as.character(shift.taxa),
-#                     r =r, correction = "border")
-#     obj21 <- Kcross(data, i = as.character(shift.taxa), j = as.character(base.taxa),
-#                     r = r, correction = "border")
-#     
-#     obj11 <- Kest(data[data$marks == as.character(base.taxa)], r = r, correction = "border")
-#     obj22 <- Kest(data[data$marks == as.character(shift.taxa)], r = r, correction = "border")
-#     
-#   } else if(correction == "translate"){
-#     obj12 <- Kcross(data, i = as.character(base.taxa), j = as.character(shift.taxa),
-#                     r =r, correction = "translate")
-#     obj21 <- Kcross(data, i = as.character(shift.taxa), j = as.character(base.taxa),
-#                     r = r, correction = "translate")
-#     
-#     obj11 <- Kest(data[data$marks == as.character(base.taxa)], r = r, correction = "translate")
-#     obj22 <- Kest(data[data$marks == as.character(shift.taxa)], r = r, correction = "translate")
-#     
-#   } else if(correction == "isotropic"){
-#     obj12 <- Kcross(data, i = as.character(base.taxa), j = as.character(shift.taxa),
-#                     r =r, correction = "isotropic")
-#     obj21 <- Kcross(data, i = as.character(shift.taxa), j = as.character(base.taxa),
-#                     r = r, correction = "isotropic")
-#     
-#     obj11 <- Kest(data[data$marks == as.character(base.taxa)], r = r, correction = "isotropic")
-#     obj22 <- Kest(data[data$marks == as.character(shift.taxa)], r = r, correction = "isotropic")
-#   }
-#   
-#   
-#   #Stat1: K12
-#   stat1 <- obj12[[3]]
-#   #Stat2: K_star
-#   Kstar <- (lambda2*obj12[[3]] + lambda1*obj21[[3]])/(lambda1+lambda2)
-#   #Stat3: Kcor
-#   Kcor <- (Kstar)/(sqrt(obj11[[3]]*obj22[[3]]))
-#   
-#   return(list(K12 = stat1, Kstar = Kstar, Kcor = Kcor, r = obj12$r))
-#   
-# }
 
 ##All K functions with border correction
 
@@ -140,5 +54,77 @@ compute_AUC <- function(K_stat, r){
   # We will compute the AUC using the trapezoidal rule
   auc <- trapz(r, K_stat)
   return(auc)
+}
+
+compute_NNX <- function(data, base.taxa, shift.taxa){
+  # Compute the proportion of base.taxa points whose nearest cross-type neighbor 
+  # (i.e., nearest neighbor that is NOT base.taxa) is of type shift.taxa,
+  # normalized by the total number of shift.taxa points
+  #
+  # Returns: (# of base.taxa points with shift.taxa as cross-type NN) / (# of shift.taxa points)
+  
+  base.taxa.points <- subset(data, marks == as.character(base.taxa))
+  other.taxa.points <- subset(data, marks != as.character(base.taxa))
+  
+  n_base <- npoints(base.taxa.points)
+  n_shift <- sum(data$marks == as.character(shift.taxa))
+  n_other <- npoints(other.taxa.points)
+  
+  if (n_base == 0 || n_shift == 0 || n_other == 0) {
+    warning("One or more taxa groups have zero points")
+    return(NA)
+  }
+  
+  base.taxa.coords <- cbind(base.taxa.points$x, base.taxa.points$y)
+  other.taxa.coords <- cbind(other.taxa.points$x, other.taxa.points$y)
+  
+  # Find nearest neighbor among non-base.taxa points for each base.taxa point
+  nn <- get.knnx(other.taxa.coords, base.taxa.coords, k = 1, algorithm = "kd_tree")
+  
+  # Get the types of the nearest cross-type neighbors
+  nn.types <- other.taxa.points$marks[nn$nn.index[, 1]]
+  
+  # Count how many base.taxa points have shift.taxa as their nearest cross-type neighbor
+  n_cross_nn <- sum(nn.types == as.character(shift.taxa))
+  
+  # Normalize by number of shift.taxa points
+  NNX <- n_cross_nn / n_shift
+  
+  return(NNX)
+}
+
+compute_NNX_d_all <- function(data, base.taxa, shift.taxa){
+  # Compute the average distance from ALL base.taxa points to their nearest shift.taxa point
+  # (considering only shift.taxa points, not all cross-type points)
+  #
+  # This differs from compute_NNX_d in that it doesn't filter by whether shift.taxa
+  # is the nearest cross-type neighbor overall
+  #
+  # Returns: mean distance from base.taxa points to nearest shift.taxa point
+  
+  base.taxa.points <- subset(data, marks == as.character(base.taxa))
+  shift.taxa.points <- subset(data, marks == as.character(shift.taxa))
+  
+  n_base <- npoints(base.taxa.points)
+  n_shift <- npoints(shift.taxa.points)
+  
+  if (n_base == 0 || n_shift == 0) {
+    warning("One or both taxa have zero points")
+    return(NA)
+  }
+  
+  base.coords <- cbind(base.taxa.points$x, base.taxa.points$y)
+  shift.coords <- cbind(shift.taxa.points$x, shift.taxa.points$y)
+  
+  # Find nearest shift.taxa neighbor for each base.taxa point
+  nn <- get.knnx(shift.coords, base.coords, k = 1, algorithm = "kd_tree")
+  
+  # Get distances to nearest shift.taxa neighbors
+  nn.distances <- nn$nn.dist[, 1]
+  
+  # Compute mean distance across all base.taxa points
+  mean_distance <- mean(nn.distances)
+  
+  return(mean_distance)
 }
 
